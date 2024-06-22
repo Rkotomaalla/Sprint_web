@@ -1,5 +1,6 @@
 package mg.itu.prom16;
 
+import mg.itu.prom16.mapping.*;
 import mg.itu.prom16.annotation.*;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -9,7 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import jakarta.servlet.ServletConfig;
@@ -19,27 +22,28 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.ClassNotFoundException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 @WebServlet(name = "FrontController", urlPatterns = { "/" })
 public class FrontController extends HttpServlet {
     public String packageName;
-    public boolean ifControllerScanned = false;
     public List<String> controllerNames = new ArrayList<>();
+
+    public HashMap<String, Mapping> Mappings = new HashMap<>();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
         this.packageName = config.getInitParameter("NameControllerPackage");
+        this.ScanController(packageName);
+
     }
 
     protected void ProcessRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String url = request.getRequestURL().toString();
         PrintWriter out = response.getWriter();
-        if (!ifControllerScanned) {
-            this.ScanController(packageName, out);
-        }
         response.setContentType("text/html");
         out.println("<html><head>");
         out.println("<title>Servlet FrontController</title>");
@@ -52,6 +56,33 @@ public class FrontController extends HttpServlet {
             out.println("les controller trouves:");
             for (String controller : controllerNames) {
                 out.println(controller);
+            }
+            if (this.Mappings.size() == 0) {
+                out.println("<h2>Aucune methodes annotatée Get</h2> ");
+            } else {
+                out.println("<h2>Les Mapping</h2>");
+                for (Map.Entry<String, Mapping> entry : Mappings.entrySet()) {
+                    // affichage de l'URL
+                    out.println("<p>Url: " + entry.getKey() + "</p>");
+                    // affichage de la classe
+                    out.println("<p>className: " + entry.getValue().getClassName() + "</p>");
+                    // affichage de la methode
+                    out.println("<p>   methodName: " + entry.getValue().getMethodName() + "</p>");
+                    // recuperation de la classe par son nom
+                    try {
+                        Class<?> classe = Class.forName(entry.getValue().getClassName());
+                        // recup de la method par son nom
+                        Method method = classe.getDeclaredMethod(entry.getValue().getMethodName());
+                        // invocation de la methode
+                        Object classInstance = classe.getDeclaredConstructor().newInstance();
+                        Object Result = method.invoke(classInstance);
+                        out.println("<p>resultat: " + (String) Result + "</p>");
+                        out.println("<hr/>");
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                        e.printStackTrace();
+                    }
+                }
             }
         }
 
@@ -71,7 +102,7 @@ public class FrontController extends HttpServlet {
         ProcessRequest(request, response);
     }
 
-    public void ScanController(String packageName, PrintWriter out) {
+    public void ScanController(String packageName) {
         try {
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
             String path = packageName.replace('.', '/');
@@ -90,16 +121,24 @@ public class FrontController extends HttpServlet {
                                 if (clazz.isAnnotationPresent(AnnotationController.class)
                                         && !Modifier.isAbstract(clazz.getModifiers())) {
                                     controllerNames.add(clazz.getSimpleName());
+                                    Method[] methods = clazz.getDeclaredMethods();
+                                    for (Method method : methods) {
+                                        if (method.isAnnotationPresent(GET.class)) {
+                                            GET annotation = method.getAnnotation(GET.class);
+                                            String url = annotation.value();
+                                            Mapping mapping = new Mapping(clazz.getName(), method.getName());
+                                            this.Mappings.put(url, mapping);
+                                        }
+                                    }
                                 }
                             } catch (ClassNotFoundException e) {
-                                e.printStackTrace(out);
+                                e.printStackTrace();
                             }
                         });
             }
 
-            ifControllerScanned = false;
         } catch (Exception e) {
-            e.printStackTrace(out);
+            e.printStackTrace();
         }
     }
 
