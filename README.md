@@ -1,12 +1,11 @@
-# creer des methodes dans les classes controller_1 et controller_2 avec des retour de chaines de caracteres;
-# annoter les Methodes de votre choix avec @GET(valeur) dans les controller_1 et Controller_2 
-# lacer builJar.bat 
-# lancer build.bat
+# Sprint
+
+- Changer "destinationDir" dans "build.bat" pour spécfier la destination du JAR File. Le JAR sera présent dans le répertoire actuel si chemin erroné.
 
 
-# creer des methodes dans les classes controller_1 et controller_2
-# annoter les Methodes de votre choix avec @GET(valeur) dans les controller_1 et Controller_2 
-# lancer build
-# configuer init-param 
-   <param-name>NameControllerPackage</param-name>
-   <param-value>chemin vers le controller</param-value>
+# Configuration dans web.xml : 
+
+- Changer la valeur de param-value en le nom du package contenant vos controllers 
+- Il faut que l'utilisateur annote ses controllers de l'annotation 'AnnotationController'
+- Il faut que l'utilisateur annote tous les méthodes de ces controllers de l'annotation 'Get' et ajouter une valeur pour chaque méthode
+- Ajouter un url mapping comme valeur de l'annotation
