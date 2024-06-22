@@ -1,6 +1,5 @@
 package mg.itu.prom16;
 
-
 import mg.itu.prom16.mapping.*;
 import mg.itu.prom16.annotation.*;
 import java.io.IOException;
@@ -15,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import jakarta.servlet.ServletConfig;
@@ -37,6 +37,8 @@ public class FrontController extends HttpServlet {
     public boolean ifControllerScanned = false;
     public List<String> controllerNames = new ArrayList<>();
 
+    public HashMap<String, Mapping> Mappings = new HashMap<>();
+
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
@@ -49,9 +51,6 @@ public class FrontController extends HttpServlet {
             throws ServletException, IOException {
         String url = request.getRequestURL().toString();
         PrintWriter out = response.getWriter();
-        if (!ifControllerScanned) {
-            this.ScanController(packageName, out);
-        }
         response.setContentType("text/html");
         out.println("<html><head>");
         out.println("<title>Servlet FrontController</title>");
@@ -70,6 +69,26 @@ public class FrontController extends HttpServlet {
             } else {
                 out.println("<h2>Les Mapping</h2>");
                 for (Map.Entry<String, Mapping> entry : Mappings.entrySet()) {
+                    // affichage de l'URL
+                    out.println("<p>Url: " + entry.getKey() + "</p>");
+                    // affichage de la classe
+                    out.println("<p>className: " + entry.getValue().getClassName() + "</p>");
+                    // affichage de la methode
+                    out.println("<p>   methodName: " + entry.getValue().getMethodName() + "</p>");
+                    // recuperation de la classe par son nom
+                    try {
+                        Class<?> classe = Class.forName(entry.getValue().getClassName());
+                        // recup de la method par son nom
+                        Method method = classe.getDeclaredMethod(entry.getValue().getMethodName());
+                        // invocation de la methode
+                        Object classInstance = classe.getDeclaredConstructor().newInstance();
+                        Object Result = method.invoke(classInstance);
+                        out.println("<p>resultat: " + (String) Result + "</p>");
+                        out.println("<hr/>");
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                        e.printStackTrace();
+                    }
                     out.println("<p>Url: " + entry.getKey() + " className:" + entry.getValue().getClassName()
                             + " methodName:" + entry.getValue().getMethodName() + "</p>");
                 }
@@ -112,6 +131,8 @@ public class FrontController extends HttpServlet {
                                 if (clazz.isAnnotationPresent(AnnotationController.class)
                                         && !Modifier.isAbstract(clazz.getModifiers())) {
                                     controllerNames.add(clazz.getSimpleName());
+                                    Method[] methods = clazz.getDeclaredMethods();
+
                                     for (Method method : methods) {
                                         if (method.isAnnotationPresent(GET.class)) {
                                             GET annotation = method.getAnnotation(GET.class);
@@ -132,14 +153,13 @@ public class FrontController extends HttpServlet {
 
                                 }
                             } catch (ClassNotFoundException e) {
-                                e.printStackTrace(out);
+                                e.printStackTrace();
                             }
                         });
             }
 
-            ifControllerScanned = false;
         } catch (Exception e) {
-            e.printStackTrace(out);
+            e.printStackTrace();
         }
     }
 
