@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import jakarta.servlet.ServletConfig;
@@ -28,6 +30,11 @@ import java.lang.reflect.Modifier;
 @WebServlet(name = "FrontController", urlPatterns = { "/" })
 public class FrontController extends HttpServlet {
     public String packageName;
+    public List<String> controllerNames = new ArrayList<>();
+
+    public HashMap<String, Mapping> Mappings = new HashMap<>();
+
+    public boolean ifControllerScanned = false;
     public List<String> controllerNames = new ArrayList<>();
 
     public HashMap<String, Mapping> Mappings = new HashMap<>();
@@ -82,6 +89,8 @@ public class FrontController extends HttpServlet {
                         // TODO: handle exception
                         e.printStackTrace();
                     }
+                    out.println("<p>Url: " + entry.getKey() + " className:" + entry.getValue().getClassName()
+                            + " methodName:" + entry.getValue().getMethodName() + "</p>");
                 }
             }
         }
@@ -103,6 +112,7 @@ public class FrontController extends HttpServlet {
     }
 
     public void ScanController(String packageName) {
+    public void ScanController(String packageName, PrintWriter out) {
         try {
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
             String path = packageName.replace('.', '/');
@@ -122,6 +132,7 @@ public class FrontController extends HttpServlet {
                                         && !Modifier.isAbstract(clazz.getModifiers())) {
                                     controllerNames.add(clazz.getSimpleName());
                                     Method[] methods = clazz.getDeclaredMethods();
+
                                     for (Method method : methods) {
                                         if (method.isAnnotationPresent(GET.class)) {
                                             GET annotation = method.getAnnotation(GET.class);
@@ -130,6 +141,16 @@ public class FrontController extends HttpServlet {
                                             this.Mappings.put(url, mapping);
                                         }
                                     }
+                                }
+                            } catch (ClassNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                        });
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
                                 }
                             } catch (ClassNotFoundException e) {
                                 e.printStackTrace();
