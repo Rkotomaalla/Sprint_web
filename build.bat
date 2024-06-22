@@ -3,7 +3,7 @@
 
 @echo off
 rem variables 
-set "name_webapp=sprint1"
+set "name_webapp=sprint4"
 set "TOMCAT_PATH=C:\Program Files\Apache Software Foundation\Tomcat 10.1_Tomcat10x"
 set "WORK_PATH=D:\Etudes\s4\Mr Naina\sprint\%name_webapp%"
 set "CATALINA_HOME=%TOMCAT_PATH%"
@@ -83,11 +83,11 @@ rem verification TOMCAT
 
 rem Vérifier si Tomcat écoute sur le port spécifié
 netstat -ano | findstr /c:":%TOMCAT_PORT%" > nul
-if errorlevel 1 (
+@REM if errorlevel 1 (
     call "%TOMCAT_PATH%\bin\startup.bat"
     echo "TOMCAT started"
     timeout /t 5 /nobreak
-)
+@REM )
 
 rem METTOYAGE webapps [tomcat]
 if exist "%TOMCAT_PATH%\webapps\%name_webapp%.war" del "%TOMCAT_PATH%\webapps\%name_webapp%.war"
