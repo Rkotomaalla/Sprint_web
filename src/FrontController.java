@@ -32,14 +32,28 @@ import java.lang.reflect.Modifier;
 public class FrontController extends HttpServlet {
     public String packageName;
     public List<String> controllerNames = new ArrayList<>();
-
+    private List<String> ErrorList = new ArrayList<>();
     public HashMap<String, Mapping> Mappings = new HashMap<>();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        super.init(config);
-        this.packageName = config.getInitParameter("NameControllerPackage");
-        this.ScanController(packageName);
+        try {
+            super.init(config);
+            this.packageName = config.getInitParameter("NameControllerPackage");
+            this.ScanController(packageName);
+        } catch (Exception e) {
+            StackTraceElement[] stacktrace = e.getStackTrace();
+            if (stacktrace.length > 0) {
+                StackTraceElement element = stacktrace[0];
+                String error = "ERROR:Package" + this.packageName
+                        + " introuvable. \nFaute de nom \n ou le package n'existe pas";
+                error += "Sur la ligne:" + element.getLineNumber() + " \n";
+                error += "Dans la classe:" + element.getClassName() + "\n";
+                error += "Fonction" + element.getMethodName() + "\n";
+                ErrorList.add(error);
+            }
+            // TODO: handle exception
+        }
 
     }
 
@@ -54,12 +68,15 @@ public class FrontController extends HttpServlet {
         out.println("<p>" + url + "</p>");
         out.println("<p>Nom du package: " + packageName + "</p>");
         if (controllerNames.isEmpty()) {
-            out.println("tsy misy controller ao @ " + packageName);
+            String Error = "Aucun controller disponnibke";
+            this.ErrorList.add(Error);
         } else {
             if (this.Mappings.size() == 0) {
-                out.println("<h2>Aucune methodes annotatée Get</h2> ");
+                String error = "Aucune methodes annotatée Get";
+                this.ErrorList.add(error);
             } else {
                 out.println("<h2>Les Mapping</h2>");
+
                 for (Map.Entry<String, Mapping> entry : Mappings.entrySet()) {
                     // affichage de l'URL
                     out.println("<p>Url: " + entry.getKey() + "</p>");
@@ -77,6 +94,7 @@ public class FrontController extends HttpServlet {
                         Object Result = method.invoke(classInstance);
                         this.ControlleData(out, Result, request, response);
                         out.println("<hr/>");
+
                     } catch (Exception e) {
                         // TODO: handle exception
                         e.printStackTrace();
@@ -84,7 +102,12 @@ public class FrontController extends HttpServlet {
                 }
             }
         }
-
+        if (ErrorList.size() > 0) {
+            request.setAttribute("list_error", ErrorList);
+            ErrorList = new ArrayList<>();
+            RequestDispatcher dispatcher = request.getRequestDispatcher("error.jsp");
+            dispatcher.forward(request, response);
+        }
         out.println("</body></html>");
         out.close();
     }
@@ -105,7 +128,7 @@ public class FrontController extends HttpServlet {
                 RequestDispatcher requestdispatcher = request.getRequestDispatcher(model.getUrl());
                 // requestdispatcher.forward(request, response);
             } else {
-                out.println("non reconnuer");
+                String error = "Response no reconnue";
             }
         } catch (Exception e) {
             e.printStackTrace(out);
